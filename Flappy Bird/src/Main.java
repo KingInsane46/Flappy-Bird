@@ -10,6 +10,7 @@ public class Main
 {
     public static void main(String[] args)
     {
+        final int SCREEN_WIDTH = 305, SCREEN_HEIGHT = 552;
         BufferedImage img0, img1, img2, img3, img4, img5, img6, img7, img8, img9;
         BufferedImage imgBackground_Day, imgBackground_Night;
         BufferedImage imgBase;
@@ -56,22 +57,27 @@ public class Main
             return;
         }
 
-        GameSprite currentScoreSprite = new GameSprite(img0);
-        GameSprite backgroundSprite = new GameSprite(imgBackground_Day);
-        backgroundSprite.setPosition(144,250);
+        GameSprite background = new GameSprite(imgBackground_Day);
+        GameSprite currentScore = new GameSprite(img0);
+        GameSprite player = new GameSprite(imgYellowBird_DownFlap);
+
+        background.setPosition(0,0);
+        currentScore.setPosition(SCREEN_WIDTH/2,SCREEN_HEIGHT/4);
+        player.setPosition(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
 
         JPanel panel = new JPanel()
         {
-            @Override
             public void paintComponent(Graphics g)
             {
                 super.paintComponent(g);
-                backgroundSprite.draw(g);
+                background.draw(g);
+                currentScore.drawCenter(g);
+                player.drawCenter(g);
             }
         };
 
         JFrame frame = new JFrame("Flappy Bird");
-        frame.setSize(300, 500);
+        frame.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
         frame.setResizable(false);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -103,6 +109,11 @@ class GameSprite
         this.y = y;
     }
     public void draw(Graphics g)
+    {
+        g.drawImage(image, x, y, null);
+    }
+
+    public void drawCenter(Graphics g)
     {
         g.drawImage(image, x-width/2, y-height/2, null);
     }
