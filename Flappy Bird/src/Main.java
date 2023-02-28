@@ -1,15 +1,19 @@
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.sql.Time;
+import java.time.Clock;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 public class Main
 {
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) throws InterruptedException {
         final int SCREEN_WIDTH = 305, SCREEN_HEIGHT = 552;
         BufferedImage img0, img1, img2, img3, img4, img5, img6, img7, img8, img9;
         BufferedImage imgBackground_Day, imgBackground_Night;
@@ -33,20 +37,10 @@ public class Main
             img9 = ImageIO.read(new File("flappy-bird-assets/sprites/9.png"));
 
             imgBackground_Day = ImageIO.read(new File("flappy-bird-assets/sprites/background-day.png"));
-            imgBackground_Night = ImageIO.read(new File("flappy-bird-assets/sprites/background-night.png"));
             imgBase = ImageIO.read(new File("flappy-bird-assets/sprites/base.png"));
             imgGameOver = ImageIO.read(new File("flappy-bird-assets/sprites/gameover.png"));
             imgMessage = ImageIO.read(new File("flappy-bird-assets/sprites/message.png"));
             imgPipe_Green = ImageIO.read(new File("flappy-bird-assets/sprites/pipe-green.png"));
-            imgPipe_Red = ImageIO.read(new File("flappy-bird-assets/sprites/pipe-red.png"));
-
-            imgBlueBird_DownFlap = ImageIO.read(new File("flappy-bird-assets/sprites/bluebird-downflap.png"));
-            imgBlueBird_MidFlap = ImageIO.read(new File("flappy-bird-assets/sprites/bluebird-midflap.png"));
-            imgBlueBird_UpFlap = ImageIO.read(new File("flappy-bird-assets/sprites/bluebird-upflap.png"));
-
-            imgRedBird_DownFlap = ImageIO.read(new File("flappy-bird-assets/sprites/redbird-downflap.png"));
-            imgRedBird_MidFlap = ImageIO.read(new File("flappy-bird-assets/sprites/redbird-midflap.png"));
-            imgRedBird_UpFlap = ImageIO.read(new File("flappy-bird-assets/sprites/redbird-upflap.png"));
 
             imgYellowBird_DownFlap = ImageIO.read(new File("flappy-bird-assets/sprites/yellowbird-downflap.png"));
             imgYellowBird_MidFlap = ImageIO.read(new File("flappy-bird-assets/sprites/yellowbird-midflap.png"));
@@ -76,19 +70,69 @@ public class Main
             }
         };
 
+        PlayerInput playerInput = new PlayerInput();
+
         JFrame frame = new JFrame("Flappy Bird");
+        frame.add(panel);
+        frame.addKeyListener(playerInput);
         frame.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
         frame.setResizable(false);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        frame.add(panel);
         frame.setVisible(true);
+
+        final long ANIMATION_SPEED_MILLI = 200;
+        long currentTime = Clock.systemUTC().millis();
+        long previousCurrentTime = currentTime;
+        long nextPlayerFrameChangeTime = currentTime + ANIMATION_SPEED_MILLI;
+        int currentPlayerFrame = 0;
+        final double GRAVITY = 20;
+        double deltaTime, moveDirection = 0;
+        boolean gameStarted = false;
+
+        while(true)
+        {
+            deltaTime = (double) (currentTime - previousCurrentTime) / 1000;
+            previousCurrentTime = currentTime;
+            currentTime = Clock.systemUTC().millis();
+
+
+            if(playerInput.getSpaceBarDown())
+            {
+                gameStarted = true;
+                if(moveDirection < 0)
+                    moveDirection = GRAVITY;
+                else
+                    moveDirection += GRAVITY;
+            }
+
+            if(gameStarted)
+            {
+                player.y -= deltaTime * moveDirection * 3;
+                moveDirection -= deltaTime*GRAVITY;
+            }
+
+            //Animate Player
+            if(nextPlayerFrameChangeTime < currentTime)
+            {
+                nextPlayerFrameChangeTime = currentTime + ANIMATION_SPEED_MILLI;
+                switch(++currentPlayerFrame%3)
+                {
+                    case 0 -> player.setImage(imgYellowBird_DownFlap);
+                    case 1 -> player.setImage(imgYellowBird_UpFlap);
+                    case 2 -> player.setImage(imgYellowBird_MidFlap);
+                }
+            }
+
+            frame.repaint();
+        }
     }
 }
 
 class GameSprite
 {
-    public int x, y, width, height;
+    public double x, y;
+    public int width, height;
     BufferedImage image;
     public GameSprite(BufferedImage image)
     {
@@ -103,18 +147,49 @@ class GameSprite
         width = image.getWidth();
         height = image.getHeight();
     }
-    public void setPosition(int x, int y)
+    public void setPosition(double x, double y)
     {
         this.x = x;
         this.y = y;
     }
     public void draw(Graphics g)
     {
-        g.drawImage(image, x, y, null);
+        g.drawImage(image, (int) (x + 0.5), (int) (y + 0.5), null);
     }
 
     public void drawCenter(Graphics g)
     {
-        g.drawImage(image, x-width/2, y-height/2, null);
+        g.drawImage(image,(int) (x + 0.5) - width/2,(int) (y + 0.5) - height/2, null);
+    }
+}
+
+class PlayerInput extends KeyAdapter
+{
+    final int SPACE_BAR_KEY_CODE = 32;
+    boolean spaceBarPressed = false, spaceBarReleased = true;
+
+    public void keyPressed(KeyEvent event)
+    {
+        int keyCode = event.getKeyCode();
+        if(keyCode == SPACE_BAR_KEY_CODE)
+        {
+            spaceBarPressed = true;
+        }
+    }
+
+    public void keyReleased(KeyEvent event)
+    {
+        int keyCode = event.getKeyCode();
+        if(keyCode == SPACE_BAR_KEY_CODE)
+        {
+            spaceBarReleased = true;
+        }
+    }
+
+    public boolean getSpaceBarDown()
+    {
+        boolean temp = spaceBarPressed;
+        spaceBarPressed = false;
+        return temp;
     }
 }
