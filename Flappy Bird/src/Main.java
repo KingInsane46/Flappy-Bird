@@ -6,22 +6,19 @@ import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.sql.Time;
 import java.time.Clock;
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
 
 public class Main
 {
     public static void main(String[] args) throws InterruptedException {
         final int SCREEN_WIDTH = 305, SCREEN_HEIGHT = 552;
         BufferedImage img0, img1, img2, img3, img4, img5, img6, img7, img8, img9;
-        BufferedImage imgBackground_Day, imgBackground_Night;
+        BufferedImage imgBackground_Day;
         BufferedImage imgBase;
         BufferedImage imgGameOver, imgMessage;
-        BufferedImage imgPipe_Green, imgPipe_Red;
-        BufferedImage imgBlueBird_DownFlap, imgBlueBird_MidFlap, imgBlueBird_UpFlap;
-        BufferedImage imgRedBird_DownFlap, imgRedBird_MidFlap, imgRedBird_UpFlap;
+        BufferedImage imgPipe_Green;
         BufferedImage imgYellowBird_DownFlap, imgYellowBird_MidFlap, imgYellowBird_UpFlap;
 
         try {
@@ -52,12 +49,23 @@ public class Main
         }
 
         GameSprite background = new GameSprite(imgBackground_Day);
+        GameSprite base0 = new GameSprite(imgBase);
+        GameSprite base1 = new GameSprite(imgBase);
+        GameSprite pipeTop = new GameSprite(imgPipe_Green);
+        GameSprite pipeBottom = new GameSprite(imgPipe_Green);
         GameSprite currentScore = new GameSprite(img0);
         GameSprite player = new GameSprite(imgYellowBird_DownFlap);
 
+        GameContainer pipe0 = new GameContainer();
+        pipe0.addGameSprite(pipeTop);
+        pipe0.addGameSprite(pipeBottom);
+        pipe0.setPosition(SCREEN_WIDTH/2, 0);
+
         background.setPosition(0,0);
-        currentScore.setPosition(SCREEN_WIDTH/2,SCREEN_HEIGHT/4);
-        player.setPosition(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
+        base0.setPosition((double) SCREEN_WIDTH/2, SCREEN_HEIGHT - base0.height+20);
+        base1.setPosition((double) SCREEN_WIDTH/2 + base1.width, SCREEN_HEIGHT - base0.height+20);
+        currentScore.setPosition((double) SCREEN_WIDTH/2, (double) SCREEN_HEIGHT/4);
+        player.setPosition((double) SCREEN_WIDTH/2, (double) SCREEN_HEIGHT/2);
 
         JPanel panel = new JPanel()
         {
@@ -65,6 +73,9 @@ public class Main
             {
                 super.paintComponent(g);
                 background.draw(g);
+                //base0.drawCenter(g);
+                //base1.drawCenter(g);
+                pipe0.draw(g);
                 currentScore.drawCenter(g);
                 player.drawCenter(g);
             }
@@ -76,7 +87,7 @@ public class Main
         frame.add(panel);
         frame.addKeyListener(playerInput);
         frame.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-        frame.setResizable(false);
+        //frame.setResizable(false);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setVisible(true);
@@ -86,7 +97,7 @@ public class Main
         long previousCurrentTime = currentTime;
         long nextPlayerFrameChangeTime = currentTime + ANIMATION_SPEED_MILLI;
         int currentPlayerFrame = 0;
-        final double GRAVITY = 20;
+        final double GRAVITY = 100, MOVE_SPEED = 75; //Pixels Per Second
         double deltaTime, moveDirection = 0;
         boolean gameStarted = false;
 
@@ -96,20 +107,16 @@ public class Main
             previousCurrentTime = currentTime;
             currentTime = Clock.systemUTC().millis();
 
-
+            //Move Player
             if(playerInput.getSpaceBarDown())
             {
                 gameStarted = true;
-                if(moveDirection < 0)
-                    moveDirection = GRAVITY;
-                else
-                    moveDirection += GRAVITY;
+                moveDirection = GRAVITY;
             }
-
             if(gameStarted)
             {
-                player.y -= deltaTime * moveDirection * 3;
-                moveDirection -= deltaTime*GRAVITY;
+                player.y -= deltaTime * moveDirection;
+                moveDirection -= GRAVITY * deltaTime;
             }
 
             //Animate Player
@@ -124,6 +131,15 @@ public class Main
                 }
             }
 
+            //Move Ground
+            base0.x -= MOVE_SPEED * deltaTime;
+            if(base0.x < (double) -base0.width/2)
+                base0.x = SCREEN_WIDTH + (double) background.width/2+5;
+
+            base1.x -= MOVE_SPEED * deltaTime;
+            if(base1.x < (double) -base1.width/2)
+                base1.x = SCREEN_WIDTH + (double) background.width/2+5;
+
             frame.repaint();
         }
     }
@@ -133,14 +149,15 @@ class GameSprite
 {
     public double x, y;
     public int width, height;
+    public boolean visible;
     BufferedImage image;
     public GameSprite(BufferedImage image)
     {
         setImage(image);
         x = 0;
         y = 0;
+        visible = true;
     }
-
     public void setImage(BufferedImage image)
     {
         this.image = image;
@@ -154,29 +171,69 @@ class GameSprite
     }
     public void draw(Graphics g)
     {
-        g.drawImage(image, (int) (x + 0.5), (int) (y + 0.5), null);
+        if(visible)
+            g.drawImage(image, (int) (x + 0.5), (int) (y + 0.5), null);
     }
-
     public void drawCenter(Graphics g)
     {
-        g.drawImage(image,(int) (x + 0.5) - width/2,(int) (y + 0.5) - height/2, null);
+        if(visible)
+            g.drawImage(image,(int) (x + 0.5) - width/2,(int) (y + 0.5) - height/2, null);
     }
 }
 
+class GameContainer
+{
+    double x, y;
+    int width, height;
+    List<GameSprite> children;
+    public GameContainer()
+    {
+        children = new ArrayList<GameSprite>();
+        x = 0;
+        y = 0;
+        width = 0;
+        height = 0;
+    }
+    public void draw(Graphics g)
+    {
+        for(GameSprite sprite : children)
+            sprite.draw(g);
+    }
+
+    public void addGameSprite(GameSprite sprite)
+    {
+        if(!children.contains(sprite))
+            children.add(sprite);
+    }
+    public void removeGameSprite(GameSprite sprite)
+    {
+        if(children.contains(sprite))
+            children.remove(sprite);
+    }
+    public void setPosition(double x, double y)
+    {
+        for(GameSprite sprite : children)
+        {
+            sprite.x += -this.x - x;
+            sprite.y -= -this.x - y;
+        }
+        this.x = x;
+        this.y = y;
+    }
+}
 class PlayerInput extends KeyAdapter
 {
     final int SPACE_BAR_KEY_CODE = 32;
     boolean spaceBarPressed = false, spaceBarReleased = true;
-
     public void keyPressed(KeyEvent event)
     {
         int keyCode = event.getKeyCode();
-        if(keyCode == SPACE_BAR_KEY_CODE)
+        if(keyCode == SPACE_BAR_KEY_CODE && spaceBarReleased)
         {
             spaceBarPressed = true;
+            spaceBarReleased = false;
         }
     }
-
     public void keyReleased(KeyEvent event)
     {
         int keyCode = event.getKeyCode();
@@ -185,7 +242,6 @@ class PlayerInput extends KeyAdapter
             spaceBarReleased = true;
         }
     }
-
     public boolean getSpaceBarDown()
     {
         boolean temp = spaceBarPressed;
