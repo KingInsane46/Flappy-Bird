@@ -278,26 +278,58 @@ class PlayerInput extends KeyAdapter
 
 */
 
+import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 class Main
 {
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) throws InterruptedException {
+        GameObject test = new GameObject();
 
+        JPanel panel = new JPanel() {
+            public void paintComponent(Graphics g)
+            {
+                Graphics2D g2d = (Graphics2D) g;
+                test.draw(g2d);
+            }
+        };
+        JFrame frame= new JFrame("Flappy Bird");
+        frame.add(panel);
+        frame.setSize(500, 500);
+        frame.setResizable(false);
+        frame.setLocationRelativeTo(null);
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        frame.setVisible(true);
+
+        while(true)
+        {
+            test.rotation += 1;
+            frame.repaint();
+            TimeUnit.MILLISECONDS.sleep(10);
+        }
     }
 }
 
 class GameObject
 {
     List<GameObject> children;
-    double x, y;
+    double x, y, rotation;
     public GameObject()
     {
         children = new ArrayList<GameObject>();
         x = 0;
         y = 0;
+        rotation = 0;
+    }
+
+    public void draw(Graphics2D g)
+    {
+        g.translate(x, y);
+        g.rotate(Math.toRadians(rotation));
+        //Use Image Instead
+        g.fillRect(-25, -25, 50, 50);
     }
 }
