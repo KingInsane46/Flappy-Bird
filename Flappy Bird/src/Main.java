@@ -1,19 +1,30 @@
-import javax.imageio.ImageIO;
+/*import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.font.FontRenderContext;
+import java.awt.font.GlyphVector;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.awt.image.BufferedImageOp;
+import java.awt.image.ImageObserver;
+import java.awt.image.RenderedImage;
+import java.awt.image.renderable.RenderableImage;
 import java.io.File;
 import java.io.IOException;
+import java.text.AttributedCharacterIterator;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class Main
 {
     public static void main(String[] args) throws InterruptedException {
         final int SCREEN_WIDTH = 305, SCREEN_HEIGHT = 552;
+
         BufferedImage img0, img1, img2, img3, img4, img5, img6, img7, img8, img9;
         BufferedImage imgBackground_Day;
         BufferedImage imgBase;
@@ -56,10 +67,22 @@ public class Main
         GameSprite currentScore = new GameSprite(img0);
         GameSprite player = new GameSprite(imgYellowBird_DownFlap);
 
+        final long ANIMATION_SPEED_MILLI = 200;
+        long currentTime = Clock.systemUTC().millis();
+        long previousCurrentTime = currentTime;
+        long nextPlayerFrameChangeTime = currentTime + ANIMATION_SPEED_MILLI;
+        int currentPlayerFrame = 0;
+        final double GRAVITY = 100, MOVE_SPEED = -75; //Pixels Per Second
+        final double POSITION_RESET = SCREEN_WIDTH + (double) background.width/2;
+        double deltaTime, moveDirection = 0;
+        boolean gameStarted = false;
+
         GameContainer pipe0 = new GameContainer();
+        pipeTop.y = -100;
+        pipeBottom.y = 100;
         pipe0.addGameSprite(pipeTop);
         pipe0.addGameSprite(pipeBottom);
-        pipe0.setPosition(SCREEN_WIDTH/2, 0);
+        pipe0.setPosition(30, (double) SCREEN_HEIGHT/2);
 
         background.setPosition(0,0);
         base0.setPosition((double) SCREEN_WIDTH/2, SCREEN_HEIGHT - base0.height+20);
@@ -87,19 +110,11 @@ public class Main
         frame.add(panel);
         frame.addKeyListener(playerInput);
         frame.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-        //frame.setResizable(false);
+        frame.setResizable(false);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setVisible(true);
 
-        final long ANIMATION_SPEED_MILLI = 200;
-        long currentTime = Clock.systemUTC().millis();
-        long previousCurrentTime = currentTime;
-        long nextPlayerFrameChangeTime = currentTime + ANIMATION_SPEED_MILLI;
-        int currentPlayerFrame = 0;
-        final double GRAVITY = 100, MOVE_SPEED = 75; //Pixels Per Second
-        double deltaTime, moveDirection = 0;
-        boolean gameStarted = false;
 
         while(true)
         {
@@ -134,12 +149,19 @@ public class Main
             //Move Ground
             base0.x -= MOVE_SPEED * deltaTime;
             if(base0.x < (double) -base0.width/2)
-                base0.x = SCREEN_WIDTH + (double) background.width/2+5;
+                base0.x = POSITION_RESET;
 
             base1.x -= MOVE_SPEED * deltaTime;
             if(base1.x < (double) -base1.width/2)
-                base1.x = SCREEN_WIDTH + (double) background.width/2+5;
+                base1.x = POSITION_RESET;
 
+            //Move Pipes
+            pipe0.setPosition(pipe0.x + MOVE_SPEED*deltaTime, pipe0.y);
+            System.out.println((int) pipe0.x);
+            if(pipe0.x - (double) pipe0.width > 0)
+            {
+                pipe0.setPosition(POSITION_RESET, pipe0.y);
+            }
             frame.repaint();
         }
     }
@@ -150,6 +172,7 @@ class GameSprite
     public double x, y;
     public int width, height;
     public boolean visible;
+    Graphics graphics2D;
     BufferedImage image;
     public GameSprite(BufferedImage image)
     {
@@ -180,10 +203,9 @@ class GameSprite
             g.drawImage(image,(int) (x + 0.5) - width/2,(int) (y + 0.5) - height/2, null);
     }
 }
-
 class GameContainer
 {
-    double x, y;
+    public double x, y;
     int width, height;
     List<GameSprite> children;
     public GameContainer()
@@ -203,19 +225,23 @@ class GameContainer
     public void addGameSprite(GameSprite sprite)
     {
         if(!children.contains(sprite))
+        {
             children.add(sprite);
-    }
-    public void removeGameSprite(GameSprite sprite)
-    {
-        if(children.contains(sprite))
-            children.remove(sprite);
+            for(GameSprite sprite1 : children)
+            {
+                if(sprite1.width > width)
+                    width = sprite1.width;
+                if(sprite1.height > height)
+                    height = sprite1.height;
+            }
+        }
     }
     public void setPosition(double x, double y)
     {
         for(GameSprite sprite : children)
         {
-            sprite.x += -this.x - x;
-            sprite.y -= -this.x - y;
+            sprite.x -= (this.x - x);
+            sprite.y -= (this.y - y);
         }
         this.x = x;
         this.y = y;
@@ -247,5 +273,31 @@ class PlayerInput extends KeyAdapter
         boolean temp = spaceBarPressed;
         spaceBarPressed = false;
         return temp;
+    }
+}
+
+*/
+
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
+
+class Main
+{
+    public static void main(String[] args)
+    {
+
+    }
+}
+
+class GameObject
+{
+    List<GameObject> children;
+    double x, y;
+    public GameObject()
+    {
+        children = new ArrayList<GameObject>();
+        x = 0;
+        y = 0;
     }
 }
