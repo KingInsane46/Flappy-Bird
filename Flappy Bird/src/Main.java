@@ -14,30 +14,30 @@ class Main
 {
     static List<GameObject> objectsToDraw = new ArrayList<GameObject>();
     public static void main(String[] args) throws InterruptedException, IOException {
+        BufferedImage backgroundImage = ImageIO.read(new File("flappy-bird-assets/sprites/background-day.png"));
         BufferedImage pipeImage = ImageIO.read(new File("flappy-bird-assets/sprites/pipe-green.png"));
 
-        GameObject pipeTop = new GameObject();
-        GameObject pipeBottom = new GameObject();
-        GameObject pipePrefab = new GameObject();
+        BufferedImage playerDown = ImageIO.read(new File("flappy-bird-assets/sprites/yellowbird-downflap.png"));
 
-        pipeTop.setVisible(false);
-        pipeBottom.setVisible(false);
+        GameObject background = new GameObject("Background");
+        background.setDrawImage(backgroundImage);
+        background.setPosition( 144, 256);
+
+        GameObject pipeTop = new GameObject("Pipe Top");
+        GameObject pipeBottom = new GameObject("Pipe Bottom");
+        GameObject pipePrefab = new GameObject("Pipe Prefab");
         pipeTop.setDrawImage(pipeImage);
         pipeBottom.setDrawImage(pipeImage);
+        pipeTop.setVisible(false);
+        pipeBottom.setVisible(false);
         pipeTop.setTransform(0, -200, 180);
         pipeBottom.setTransform(0, 200, 0);
-
-        GameObject pipeTopCopy = pipeTop.createCopy();
-        GameObject pipeBottomCopy = pipeBottom.createCopy();
-        pipeTopCopy.setVisible(true);
-        pipeBottomCopy.setVisible(true);
-
-        pipePrefab.addChild(pipeTopCopy);
-        pipePrefab.addChild(pipeBottomCopy);
-        pipePrefab.setPosition(250, 250);
+        pipePrefab.addChild(pipeTop);
+        pipePrefab.addChild(pipeBottom);
+        pipePrefab.setPosition((double) 288/2, (double) 512/2);
 
         GameObject pipe0 = pipePrefab.createCopy();
-        //pipe0.setX(100);
+        pipe0.setAllVisible(true);
 
         long currentTime = Clock.systemUTC().millis(), previousTime = currentTime;
         double deltaTime;
@@ -54,7 +54,7 @@ class Main
 
         JFrame frame= new JFrame("Flappy Bird");
         frame.add(panel);
-        frame.setSize(500, 500);
+        frame.setSize(288, 512);
         frame.setResizable(false);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -66,7 +66,7 @@ class Main
             previousTime = currentTime;
             currentTime = Clock.systemUTC().millis();
 
-            pipe0.setX(pipe0.getX() - 10 * deltaTime);
+            pipe0.setX(pipe0.getX() - 30 * deltaTime);
 
             frame.repaint();
         }
@@ -74,16 +74,17 @@ class Main
 }
 
 class GameObject {
+    private final List<GameObject> children = new ArrayList<>();
     private BufferedImage drawImage = null;
-    private List<GameObject> children = new ArrayList<>();
-    private GameObject parent = null;
+    private String name;
     private double x = 0, y = 0, rotation = 0;
     private int width = 0, height = 0;
     private boolean visible = true;
 
-    public GameObject()
+    public GameObject(String name)
     {
         Main.objectsToDraw.add(this);
+        setName(name);
     }
     public void setTransform(double x, double y, double rotation)
     {
@@ -125,35 +126,38 @@ class GameObject {
     {
         return rotation;
     }
+    public void setName(String name)
+    {
+        this.name = name;
+    }
+    public String getName()
+    {
+        return name;
+    }
     public void addChild(GameObject child)
     {
         if(children.contains(child))
             return;
         children.add(child);
-        child.setParent(this);
     }
     public void removeChild(GameObject child)
     {
         if(!children.contains(child))
             return;
         children.remove(child);
-        child.setParent(null);
     }
     public List<GameObject> getChildren()
     {
         return children;
     }
-    public void setParent(GameObject parent)
+    public GameObject getChildByName(String name)
     {
-        if(this.parent != null)
-            this.parent.removeChild(this);
-        if(parent != null && parent.getChildren().contains(this))
-            parent.addChild(this);
-        this.parent = parent;
-    }
-    public GameObject getParent()
-    {
-        return parent;
+        if(this.name.equals(name))
+            return this;
+        for(GameObject child : children)
+            if(child.getName().equals(name))
+                return child;
+        return null;
     }
     public void setDrawImage(BufferedImage image)
     {
@@ -168,6 +172,12 @@ class GameObject {
     public void setVisible(boolean value)
     {
         visible = value;
+    }
+    public void setAllVisible(boolean value)
+    {
+        setVisible(value);
+        for(GameObject child : children)
+            child.setAllVisible(value);
     }
     public boolean getVisible()
     {
@@ -186,11 +196,10 @@ class GameObject {
     }
     public GameObject createCopy()
     {
-        GameObject copy = new GameObject();
+        GameObject copy = new GameObject(getName());
         copy.setTransform(getX(), getY(), getRotation());
         copy.setDrawImage(getDrawImage());
         copy.setVisible(getVisible());
-        copy.setParent(getParent());
         for(GameObject child : children)
             copy.addChild(child.createCopy());
         return copy;
