@@ -36,6 +36,8 @@ class Main
         pipePrefab.addChild(pipeBottomCopy);
         pipePrefab.setPosition(250, 250);
 
+        GameObject pipe0 = pipePrefab.createCopy();
+        //pipe0.setX(100);
 
         long currentTime = Clock.systemUTC().millis(), previousTime = currentTime;
         double deltaTime;
@@ -64,7 +66,7 @@ class Main
             previousTime = currentTime;
             currentTime = Clock.systemUTC().millis();
 
-            //pipePrefab.setX(pipePrefab.getX()  - deltaTime);
+            pipe0.setX(pipe0.getX() - 10 * deltaTime);
 
             frame.repaint();
         }
@@ -73,7 +75,7 @@ class Main
 
 class GameObject {
     private BufferedImage drawImage = null;
-    private List<GameObject> children = new ArrayList<GameObject>();
+    private List<GameObject> children = new ArrayList<>();
     private GameObject parent = null;
     private double x = 0, y = 0, rotation = 0;
     private int width = 0, height = 0;
@@ -128,27 +130,25 @@ class GameObject {
         if(children.contains(child))
             return;
         children.add(child);
-        child.parent = this;
+        child.setParent(this);
     }
     public void removeChild(GameObject child)
     {
         if(!children.contains(child))
             return;
         children.remove(child);
-        child.parent = null;
+        child.setParent(null);
     }
     public List<GameObject> getChildren()
     {
         return children;
     }
-
     public void setParent(GameObject parent)
     {
-        if(parent == null)
-            return;
-        if(!parent.getChildren().contains(this))
+        if(this.parent != null)
+            this.parent.removeChild(this);
+        if(parent != null && parent.getChildren().contains(this))
             parent.addChild(this);
-        this.parent.removeChild(this);
         this.parent = parent;
     }
     public GameObject getParent()
@@ -158,8 +158,8 @@ class GameObject {
     public void setDrawImage(BufferedImage image)
     {
         this.drawImage = image;
-        width = image.getWidth();
-        height = image.getHeight();
+        width = image == null ? 0 : image.getWidth();
+        height = image == null ? 0 : image.getHeight();
     }
     public BufferedImage getDrawImage()
     {
@@ -184,7 +184,6 @@ class GameObject {
             g.drawImage(drawImage, -width/2, -height/2, null);
         g.setTransform(originalTransform);
     }
-
     public GameObject createCopy()
     {
         GameObject copy = new GameObject();
@@ -193,12 +192,7 @@ class GameObject {
         copy.setVisible(getVisible());
         copy.setParent(getParent());
         for(GameObject child : children)
-        {
-            GameObject childCopy = new GameObject();
-            childCopy = child.createCopy();
-            copy.addChild(childCopy);
-        }
-
+            copy.addChild(child.createCopy());
         return copy;
     }
 }
